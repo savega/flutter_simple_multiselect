@@ -27,6 +27,7 @@ class FlutterMultiselect<T> extends StatefulWidget {
       required this.suggestionBuilder,
       required this.findSuggestions,
       Key? key,
+      this.hintText = "Type to search",
       this.focusNode,
       this.isLoading = false,
       this.enabled = true,
@@ -67,6 +68,9 @@ class FlutterMultiselect<T> extends StatefulWidget {
       this.errorBorderColor,
       this.suggestionMargin})
       : super(key: key);
+
+  /// Hint text
+  final String hintText;
 
   /// Multiple choices
   final bool multiselect;
@@ -263,8 +267,8 @@ class FlutterMultiselectState<T> extends State<FlutterMultiselect<T>> {
                       elevation: widget.suggestionsBoxElevation ?? 20,
                       borderRadius: BorderRadius.circular(
                           widget.suggestionsBoxRadius ?? 20),
-                      color:
-                          widget.suggestionsBoxBackgroundColor ?? Colors.transparent,
+                      color: widget.suggestionsBoxBackgroundColor ??
+                          Colors.transparent,
                       child: Container(
                           decoration: BoxDecoration(
                               color: widget.suggestionsBoxBackgroundColor ??
@@ -353,6 +357,7 @@ class FlutterMultiselectState<T> extends State<FlutterMultiselect<T>> {
     _suggestionsStreamController?.add([]);
     if (widget.multiselect) {
       _resetTextField();
+      _focusNode.requestFocus();
     } else {
       _textFieldController.text = newString ?? "";
     }
@@ -368,6 +373,12 @@ class FlutterMultiselectState<T> extends State<FlutterMultiselect<T>> {
   void _resetTextField() {
     _textFieldController.text = '';
     _previousText = '';
+  }
+
+  void _searchTapOutside(PointerDownEvent event) {
+    if (this._suggestions == null) {
+      this._focusNode.unfocus();
+    }
   }
 
   @override
@@ -410,7 +421,7 @@ class FlutterMultiselectState<T> extends State<FlutterMultiselect<T>> {
                 color: Colors.transparent,
                 width: 0,
               )),
-          hintText: "Type to search",
+          hintText: widget.hintText,
         );
     final decoration = widget.isLoading
         ? customDec.copyWith(
@@ -446,7 +457,8 @@ class FlutterMultiselectState<T> extends State<FlutterMultiselect<T>> {
                     color: _isFocused
                         ? widget.focusedBorderColor ?? Colors.transparent
                         : (formError != null)
-                            ? (widget.errorBorderColor ?? Theme.of(context).colorScheme.error)
+                            ? (widget.errorBorderColor ??
+                                Theme.of(context).colorScheme.error)
                             : (widget.enableBorderColor ?? Colors.transparent)),
                 color: widget.backgroundColor ?? Colors.transparent),
             child: FlutterMultiselectLayout(
@@ -467,107 +479,8 @@ class FlutterMultiselectState<T> extends State<FlutterMultiselect<T>> {
                 LayoutId(
                     id: FlutterMultiselectLayoutDelegate.textFieldId,
                     child: widget.multiselect
-                        ? (widget.length == 0 || _isFocused
-                            ? TextFormField(
-                                onTap: () {
-                                  if (_isFocused) {
-                                    _onSearchChanged("");
-                                  }
-                                },
-                                validator: (value) {
-                                  if (widget.validator == null) {
-                                    return null;
-                                  }
-                                  setState(() {
-                                    formError = widget.validator!(value);
-                                  });
-                                  return widget.validator!(value);
-                                },
-                                style: widget.textStyle,
-                                focusNode: _focusNode,
-                                enabled: widget.enabled,
-                                controller: _textFieldController,
-                                keyboardType: widget.keyboardType,
-                                keyboardAppearance: widget.keyboardAppearance,
-                                textCapitalization: widget.textCapitalization,
-                                textInputAction: widget.textInputAction,
-                                cursorColor: widget.cursorColor,
-                                autocorrect: widget.autocorrect,
-                                textAlign: widget.textAlign,
-                                textDirection: widget.textDirection,
-                                readOnly: widget.readOnly,
-                                autofocus: widget.autofocus,
-                                maxLines: widget.maxLines,
-                                decoration: decoration.copyWith(border: InputBorder.none),
-                                onChanged: _onTextFieldChange,
-                                onFieldSubmitted: _onSubmitted,
-                                inputFormatters: widget.inputFormatters,
-                              )
-                            : SizedBox(
-                                height: 24,
-                                child: SizedBox(
-                                  height: 0.1,
-                                  child: TextFormField(
-                                    style: const TextStyle(
-                                        fontSize: 0.1,
-                                        color: Colors.transparent),
-                                    readOnly: true,
-                                    enabled: false,
-                                    decoration: InputDecoration(
-                                      errorStyle: const TextStyle(
-                                          height: 0.01,
-                                          color: Colors.transparent),
-                                      errorBorder: OutlineInputBorder(
-                                          borderRadius:
-                                              BorderRadius.circular(5),
-                                          borderSide: const BorderSide(
-                                            color: Colors.transparent,
-                                            width: 0.01,
-                                          )),
-                                      isDense: true,
-                                      isCollapsed: true,
-                                      contentPadding: const EdgeInsets.all(0),
-                                      disabledBorder: OutlineInputBorder(
-                                          borderRadius:
-                                              BorderRadius.circular(5),
-                                          borderSide: const BorderSide(
-                                            color: Colors.transparent,
-                                            width: 0.1,
-                                          )),
-                                      focusedBorder: OutlineInputBorder(
-                                          borderRadius:
-                                              BorderRadius.circular(5),
-                                          borderSide: const BorderSide(
-                                            color: Colors.transparent,
-                                            width: 0,
-                                          )),
-                                      border: OutlineInputBorder(
-                                          borderRadius:
-                                              BorderRadius.circular(5),
-                                          borderSide: const BorderSide(
-                                            color: Colors.transparent,
-                                            width: 0.1,
-                                          )),
-                                      hintText: "",
-                                    ),
-                                    onTap: () {
-                                      if (_isFocused) {
-                                        _onSearchChanged("");
-                                      }
-                                    },
-                                    validator: (value) {
-                                      if (widget.validator == null) {
-                                        return null;
-                                      }
-                                      setState(() {
-                                        formError = widget.validator!(value);
-                                      });
-                                      return widget.validator!(value);
-                                    },
-                                  ),
-                                ),
-                              ))
-                        : TextFormField(
+                        ? TextFormField(
+                            onTapOutside: _searchTapOutside,
                             onTap: () {
                               if (_isFocused) {
                                 _onSearchChanged("");
@@ -597,7 +510,45 @@ class FlutterMultiselectState<T> extends State<FlutterMultiselect<T>> {
                             readOnly: widget.readOnly,
                             autofocus: widget.autofocus,
                             maxLines: widget.maxLines,
-                            decoration: decoration.copyWith(border: InputBorder.none),
+                            decoration:
+                                decoration.copyWith(border: InputBorder.none),
+                            onChanged: _onTextFieldChange,
+                            onFieldSubmitted: _onSubmitted,
+                            inputFormatters: widget.inputFormatters,
+                          )
+                        : TextFormField(
+                            onTapOutside: _searchTapOutside,
+                            onTap: () {
+                              if (_isFocused) {
+                                _onSearchChanged("");
+                              }
+                            },
+                            validator: (value) {
+                              if (widget.validator == null) {
+                                return null;
+                              }
+                              setState(() {
+                                formError = widget.validator!(value);
+                              });
+                              return widget.validator!(value);
+                            },
+                            style: widget.textStyle,
+                            focusNode: _focusNode,
+                            enabled: widget.enabled,
+                            controller: _textFieldController,
+                            keyboardType: widget.keyboardType,
+                            keyboardAppearance: widget.keyboardAppearance,
+                            textCapitalization: widget.textCapitalization,
+                            textInputAction: widget.textInputAction,
+                            cursorColor: widget.cursorColor,
+                            autocorrect: widget.autocorrect,
+                            textAlign: widget.textAlign,
+                            textDirection: widget.textDirection,
+                            readOnly: widget.readOnly,
+                            autofocus: widget.autofocus,
+                            maxLines: widget.maxLines,
+                            decoration:
+                                decoration.copyWith(border: InputBorder.none),
                             onChanged: _onTextFieldChange,
                             onFieldSubmitted: _onSubmitted,
                             inputFormatters: widget.inputFormatters,
@@ -610,8 +561,11 @@ class FlutterMultiselectState<T> extends State<FlutterMultiselect<T>> {
                 padding: const EdgeInsets.only(top: 7, left: 20),
                 child: Text(
                   formError.toString(),
-                  style:
-                      widget.errorStyling ?? Theme.of(context).textTheme.bodySmall!.copyWith(color: Theme.of(context).colorScheme.error),
+                  style: widget.errorStyling ??
+                      Theme.of(context)
+                          .textTheme
+                          .bodySmall!
+                          .copyWith(color: Theme.of(context).colorScheme.error),
                 ))
         ],
       ),
