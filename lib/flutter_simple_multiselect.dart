@@ -347,7 +347,11 @@ class FlutterMultiselectState<T> extends State<FlutterMultiselect<T>> {
     Future.delayed(const Duration(milliseconds: 300), () {
       WidgetsBinding.instance.addPostFrameCallback((_) async {
         final renderBox = context.findRenderObject() as RenderBox;
-        await Scrollable.of(context).position.ensureVisible(renderBox);
+        final scroller = Scrollable.maybeOf(context);
+
+        if (scroller != null) {
+          await scroller.position.ensureVisible(renderBox);
+        }
       });
     });
   }
@@ -361,6 +365,11 @@ class FlutterMultiselectState<T> extends State<FlutterMultiselect<T>> {
     } else {
       _textFieldController.text = newString ?? "";
     }
+  }
+
+  void closeSuggestionsBox() {
+    _suggestions = null;
+    _suggestionsStreamController?.add([]);
   }
 
   void _onSubmitted(String string) {
