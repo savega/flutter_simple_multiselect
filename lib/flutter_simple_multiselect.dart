@@ -16,6 +16,12 @@ typedef SuggestionBuilder<T> = Widget Function(
 typedef InputSuggestions<T> = FutureOr<List<T>> Function(String query);
 typedef SearchSuggestions<T> = FutureOr<List<T>> Function();
 
+enum FlutterMultiselectDropdownDirection {
+  above,
+  below,
+  auto,
+}
+
 /// A [Widget] for editing tag similar to Google's Gmail
 /// email address input widget in the iOS app.
 class FlutterMultiselect<T> extends StatefulWidget {
@@ -30,6 +36,7 @@ class FlutterMultiselect<T> extends StatefulWidget {
       this.hintText = "Type to search",
       this.focusNode,
       this.isLoading = false,
+      this.dropdownDirection = FlutterMultiselectDropdownDirection.auto,
       this.enabled = true,
       this.controller,
       this.textStyle,
@@ -89,6 +96,9 @@ class FlutterMultiselect<T> extends StatefulWidget {
 
   /// Loader for async fetching
   final bool isLoading;
+
+  /// In which direction suggestions open
+  final FlutterMultiselectDropdownDirection dropdownDirection;
 
   /// Reset the TextField when `onSubmitted` is called
   /// this is default to `false` because when the form is submitted
@@ -251,7 +261,7 @@ class FlutterMultiselectState<T> extends State<FlutterMultiselect<T>> {
             suggestionBoxHeight =
                 min(suggestionBoxHeight, widget.suggestionsBoxMaxHeight!);
           }
-          final showTop = topAvailableSpace > bottomAvailableSpace;
+          final showTop = _getShowOnTop(context);
           final compositedTransformFollowerOffset =
               showTop ? Offset(0, -size.height) : Offset.zero;
 
@@ -388,6 +398,24 @@ class FlutterMultiselectState<T> extends State<FlutterMultiselect<T>> {
     if (this._suggestions == null) {
       this._focusNode.unfocus();
     }
+  }
+
+  bool _getShowOnTop(BuildContext context) {
+    if (widget.dropdownDirection == FlutterMultiselectDropdownDirection.auto) {
+      if (renderBox != null) {
+        final size = renderBox!.size;
+        final position = renderBox!.localToGlobal(Offset.zero);
+        final mq = MediaQuery.of(context);
+        final topAvailableSpace = position.dy;
+        final bottomAvailableSpace =
+            mq.size.height - mq.viewInsets.bottom - position.dy - size.height;
+
+        return topAvailableSpace > bottomAvailableSpace;
+      }
+    }
+
+    return widget.dropdownDirection ==
+        FlutterMultiselectDropdownDirection.above;
   }
 
   @override
