@@ -69,6 +69,7 @@ class FlutterMultiselect<T> extends StatefulWidget {
     this.errorStyling,
     this.errorBorderColor,
     this.suggestionMargin,
+    this.collapsedHeight,
     this.unfocusedInputDecoration,
     this.leadingSelectionPadding,
   });
@@ -522,10 +523,6 @@ class FlutterMultiselectState<T> extends State<FlutterMultiselect<T>> {
                 LayoutId(
                     id: FlutterMultiselectLayoutDelegate.textFieldId,
                     child: widget.multiselect
-                        ? (widget.length == 0 || _isFocused
-                            ? TextFormField(
-                                key: textFormKey,
-                            onTapOutside: _searchTapOutside,
                         ? (widget.length == 0 || _isFocused
                             ? TextFormField(
                                 key: textFormKey,
