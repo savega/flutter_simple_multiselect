@@ -80,11 +80,17 @@ class _MyHomePageState extends State<MyHomePage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: <Widget>[
-                    const Padding(padding: EdgeInsets.only(bottom: 10), child: Text("Static data multiselect")),
+                    const Padding(
+                        padding: EdgeInsets.only(bottom: 10),
+                        child: Text("Static data multiselect")),
                     _staticData(),
-                    const Padding(padding: EdgeInsets.only(bottom: 10, top: 20), child: Text("Async data multiselect")),
+                    const Padding(
+                        padding: EdgeInsets.only(bottom: 10, top: 20),
+                        child: Text("Async data multiselect")),
                     _asyncData(),
-                    const Padding(padding: EdgeInsets.only(bottom: 10, top: 20), child: Text("Data single select")),
+                    const Padding(
+                        padding: EdgeInsets.only(bottom: 10, top: 20),
+                        child: Text("Data single select")),
                     _staticSingleData(),
                     Padding(
                       padding: const EdgeInsets.symmetric(vertical: 16.0),
@@ -136,22 +142,29 @@ class _MyHomePageState extends State<MyHomePage> {
         suggestionBuilder: (context, state, data) {
           var existing = singleItem == data;
           return Material(
-            child: ListTile(
+            child: GestureDetector(
+              onPanDown: (_) {
+                singleItem = existing ? null : data;
+
+                setState(() {
+                  state.selectAndClose(data,
+                      singleItem != null ? singleItem!["name"].toString() : "");
+                });
+              },
+              child: ListTile(
+                enabled: true,
                 selected: existing,
                 trailing: existing ? const Icon(Icons.check) : null,
                 selectedColor: Colors.white,
                 selectedTileColor: Colors.green,
                 dense: true,
                 title: Text(data["name"].toString()),
-                onTap: () {
-                  singleItem = existing ? null : data;
-
-                  state.selectAndClose(data, singleItem != null ? singleItem!["name"].toString() : "");
-                  setState(() {});
-                }),
+              ),
+            ),
           );
         },
-        suggestionsBoxElevation: 10,
+        suggestionsBoxElevation: 0,
+        suggestionsBoxRadius: 12,
         findSuggestions: (String query) async {
           setState(() {
             isLoading = true;
@@ -185,29 +198,35 @@ class _MyHomePageState extends State<MyHomePage> {
               },
             ),
         suggestionBuilder: (context, state, data) {
-          var existingIndex = selectedItems.indexWhere((element) => element["uuid"] == data["uuid"]);
+          var existingIndex = selectedItems
+              .indexWhere((element) => element["uuid"] == data["uuid"]);
           var selectedData = data;
           return Material(
-            child: ListTile(
+            child: GestureDetector(
+              behavior: HitTestBehavior.translucent,
+              onPanDown: (_) {
+                if (existingIndex >= 0) {
+                  selectedItems.removeAt(existingIndex);
+                } else {
+                  selectedItems.add(data);
+                }
+
+                state.selectAndClose(data);
+                setState(() {});
+              },
+              child: ListTile(
                 dense: true,
                 selected: existingIndex >= 0,
                 trailing: existingIndex >= 0 ? const Icon(Icons.check) : null,
                 selectedColor: Colors.white,
                 selectedTileColor: Colors.green,
                 title: Text(selectedData["name"].toString()),
-                onTap: () {
-                  if (existingIndex >= 0) {
-                    selectedItems.removeAt(existingIndex);
-                  } else {
-                    selectedItems.add(data);
-                  }
-
-                  state.selectAndClose(data);
-                  setState(() {});
-                }),
+              ),
+            ),
           );
         },
-        suggestionsBoxElevation: 10,
+        // suggestionsBoxElevation: 10,
+        suggestionsBoxRadius: 12,
         findSuggestions: (String query) async {
           setState(() {
             isLoading = true;
@@ -228,6 +247,7 @@ class _MyHomePageState extends State<MyHomePage> {
         focusedBorderColor: lineColor,
         borderRadius: 5,
         borderSize: 2,
+        suggestionsBoxRadius: 12,
         resetTextOnSubmitted: true,
         minTextFieldWidth: 300,
         validator: (value) {
@@ -248,28 +268,33 @@ class _MyHomePageState extends State<MyHomePage> {
               },
             ),
         suggestionBuilder: (context, state, data) {
-          var existingIndex = selectedItemsAsync.indexWhere((element) => element["uuid"] == data["uuid"]);
+          var existingIndex = selectedItemsAsync
+              .indexWhere((element) => element["uuid"] == data["uuid"]);
           var selectedData = data;
           return Material(
-              child: ListTile(
-                  selected: existingIndex >= 0,
-                  trailing: existingIndex >= 0 ? const Icon(Icons.check) : null,
-                  selectedColor: Colors.white,
-                  selectedTileColor: Colors.green,
-                  title: Text(selectedData["name"].toString()),
-                  onTap: () {
-                    var existingIndex = selectedItemsAsync.indexWhere((element) => element["uuid"] == data["uuid"]);
-                    if (existingIndex >= 0) {
-                      selectedItemsAsync.removeAt(existingIndex);
-                    } else {
-                      selectedItemsAsync.add(data);
-                    }
+              child: GestureDetector(
+            onPanDown: (_) {
+              var existingIndex = selectedItemsAsync
+                  .indexWhere((element) => element["uuid"] == data["uuid"]);
+              if (existingIndex >= 0) {
+                selectedItemsAsync.removeAt(existingIndex);
+              } else {
+                selectedItemsAsync.add(data);
+              }
 
-                    state.selectAndClose(data);
-                    setState(() {});
-                  }));
+              state.selectAndClose(data);
+              setState(() {});
+            },
+            child: ListTile(
+              selected: existingIndex >= 0,
+              trailing: existingIndex >= 0 ? const Icon(Icons.check) : null,
+              selectedColor: Colors.white,
+              selectedTileColor: Colors.green,
+              title: Text(selectedData["name"].toString()),
+            ),
+          ));
         },
-        suggestionsBoxElevation: 10,
+        suggestionsBoxElevation: 0,
         findSuggestions: (String query) async {
           setState(() {
             isLoading = true;

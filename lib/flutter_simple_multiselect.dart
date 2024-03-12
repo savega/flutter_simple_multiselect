@@ -1,7 +1,9 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:math';
 
 import 'package:debounce_throttle/debounce_throttle.dart';
+import 'package:flutter/foundation.dart';
 import './suggestions_box_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -19,56 +21,57 @@ typedef SearchSuggestions<T> = FutureOr<List<T>> Function();
 /// A [Widget] for editing tag similar to Google's Gmail
 /// email address input widget in the iOS app.
 class FlutterMultiselect<T> extends StatefulWidget {
-  const FlutterMultiselect(
-      {required this.length,
-      this.minTextFieldWidth = 160.0,
-      this.tagSpacing = 4.0,
-      required this.tagBuilder,
-      required this.suggestionBuilder,
-      required this.findSuggestions,
-      Key? key,
-      this.hintText = "Type to search",
-      this.focusNode,
-      this.isLoading = false,
-      this.enabled = true,
-      this.controller,
-      this.textStyle,
-      this.inputDecoration,
-      this.keyboardType,
-      this.textInputAction,
-      this.textCapitalization = TextCapitalization.none,
-      this.textAlign = TextAlign.start,
-      this.textDirection,
-      this.readOnly = false,
-      this.autofocus = false,
-      this.autocorrect = false,
-      this.maxLines = 1,
-      this.resetTextOnSubmitted = false,
-      this.onSubmitted,
-      this.inputFormatters,
-      this.keyboardAppearance,
-      this.suggestionsBoxMaxHeight,
-      this.suggestionsBoxElevation,
-      this.suggestionsBoxBackgroundColor,
-      this.suggestionsBoxRadius,
-      this.debounceDuration,
-      this.activateSuggestionBox = true,
-      this.cursorColor,
-      this.backgroundColor,
-      this.focusedBorderColor,
-      this.enableBorderColor,
-      this.borderRadius,
-      this.borderSize,
-      this.padding,
-      this.suggestionPadding,
-      this.autoDisposeFocusNode = true,
-      this.multiselect = true,
-      this.validator,
-      this.errorStyling,
-      this.errorBorderColor,
-      this.suggestionMargin})
-      : super(key: key);
-
+  const FlutterMultiselect({
+    required this.length,
+    this.minTextFieldWidth = 160.0,
+    this.tagSpacing = 4.0,
+    required this.tagBuilder,
+    required this.suggestionBuilder,
+    required this.findSuggestions,
+    super.key,
+    this.hintText = "Type to search",
+    this.focusNode,
+    this.isLoading = false,
+    this.enabled = true,
+    this.controller,
+    this.textStyle,
+    this.inputDecoration,
+    this.keyboardType,
+    this.textInputAction,
+    this.textCapitalization = TextCapitalization.none,
+    this.textAlign = TextAlign.start,
+    this.textDirection,
+    this.readOnly = false,
+    this.autofocus = false,
+    this.autocorrect = false,
+    this.maxLines = 1,
+    this.resetTextOnSubmitted = false,
+    this.onSubmitted,
+    this.inputFormatters,
+    this.keyboardAppearance,
+    this.suggestionsBoxMaxHeight,
+    this.suggestionsBoxElevation,
+    this.suggestionsBoxBackgroundColor,
+    this.suggestionsBoxRadius,
+    this.debounceDuration,
+    this.activateSuggestionBox = true,
+    this.cursorColor,
+    this.backgroundColor,
+    this.focusedBorderColor,
+    this.enableBorderColor,
+    this.borderRadius,
+    this.borderSize,
+    this.padding,
+    this.suggestionPadding,
+    this.autoDisposeFocusNode = true,
+    this.multiselect = true,
+    this.validator,
+    this.errorStyling,
+    this.errorBorderColor,
+    this.suggestionMargin,
+    this.unfocusedInputDecoration,
+    this.leadingSelectionPadding,
+  });
   /// Hint text
   final String hintText;
 
@@ -112,6 +115,7 @@ class FlutterMultiselect<T> extends StatefulWidget {
   final bool enabled;
   final TextStyle? textStyle;
   final InputDecoration? inputDecoration;
+  final InputDecoration? unfocusedInputDecoration;
   final TextInputType? keyboardType;
   final TextInputAction? textInputAction;
   final TextCapitalization textCapitalization;
@@ -147,6 +151,9 @@ class FlutterMultiselect<T> extends StatefulWidget {
   final TextStyle? errorStyling;
   final Color? errorBorderColor;
 
+  final double? collapsedHeight;
+  final double? leadingSelectionPadding;
+
   @override
   FlutterMultiselectState<T> createState() => FlutterMultiselectState<T>();
 }
@@ -171,6 +178,8 @@ class FlutterMultiselectState<T> extends State<FlutterMultiselect<T>> {
   List<T>? _suggestions;
   int _searchId = 0;
   Debouncer? _deBouncer;
+  final textFormKey = GlobalKey();
+  double inputHeight = 24;
 
   RenderBox? get renderBox => context.findRenderObject() as RenderBox?;
 
@@ -181,6 +190,14 @@ class FlutterMultiselectState<T> extends State<FlutterMultiselect<T>> {
 
     _focusNode = (widget.focusNode ?? FocusNode())
       ..addListener(_onFocusChanged);
+    Future.delayed(const Duration(milliseconds: 1000), () {
+      if (textFormKey.currentContext != null &&
+          textFormKey.currentContext!.size != null) {
+        setState(() {
+          inputHeight = textFormKey.currentContext!.size!.height;
+        });
+      }
+    });
 
     if (widget.activateSuggestionBox) _initializeSuggestionBox();
   }
@@ -266,15 +283,40 @@ class FlutterMultiselectState<T> extends State<FlutterMultiselect<T>> {
                     child: Material(
                       elevation: widget.suggestionsBoxElevation ?? 20,
                       borderRadius: BorderRadius.circular(
-                          widget.suggestionsBoxRadius ?? 20),
+                        widget.suggestionsBoxRadius ?? 20,
+                      ),
                       color: widget.suggestionsBoxBackgroundColor ??
                           Colors.transparent,
                       child: Container(
+                          clipBehavior: Clip.hardEdge,
                           decoration: BoxDecoration(
-                              color: widget.suggestionsBoxBackgroundColor ??
-                                  Colors.transparent,
-                              borderRadius: BorderRadius.all(Radius.circular(
-                                  widget.suggestionsBoxRadius ?? 0))),
+                            color: widget.suggestionsBoxBackgroundColor ??
+                                Colors.transparent,
+                            borderRadius: showTop
+                                ? BorderRadius.only(
+                                    topLeft: Radius.circular(
+                                        widget.suggestionsBoxRadius ?? 0),
+                                    topRight: Radius.circular(
+                                        widget.suggestionsBoxRadius ?? 0),
+                                  )
+                                : BorderRadius.only(
+                                    bottomLeft: Radius.circular(
+                                        widget.suggestionsBoxRadius ?? 0),
+                                    bottomRight: Radius.circular(
+                                        widget.suggestionsBoxRadius ?? 0),
+                                  ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.grey.withOpacity(0.5),
+                                spreadRadius: 3,
+                                blurRadius: 10,
+                                offset: Offset(
+                                  0,
+                                  showTop ? -5 : 10,
+                                ), // changes position of shadow
+                              ),
+                            ],
+                          ),
                           constraints:
                               BoxConstraints(maxHeight: suggestionBoxHeight),
                           child: ListView.builder(
@@ -375,14 +417,9 @@ class FlutterMultiselectState<T> extends State<FlutterMultiselect<T>> {
     _previousText = '';
   }
 
-  void _searchTapOutside(PointerDownEvent event) {
-    if (this._suggestions == null) {
-      this._focusNode.unfocus();
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
+    bool isMobile = MediaQuery.of(context).size.width < (kIsWeb ? 509 : 520);
     InputDecoration customDec = widget.inputDecoration ??
         InputDecoration(
           errorBorder: widget.multiselect
@@ -473,51 +510,128 @@ class FlutterMultiselectState<T> extends State<FlutterMultiselect<T>> {
                     widget.length,
                     (index) => LayoutId(
                       id: FlutterMultiselectLayoutDelegate.getTagId(index),
-                      child: widget.tagBuilder(context, index),
+                      child: Padding(
+                          padding: kIsWeb || Platform.isMacOS
+                              ? const EdgeInsets.only(top: 3)
+                              : (Platform.isAndroid || Platform.isIOS
+                                  ? EdgeInsets.zero
+                                  : const EdgeInsets.only(top: 3)),
+                          child: widget.tagBuilder(context, index)),
                     ),
                   ),
                 LayoutId(
                     id: FlutterMultiselectLayoutDelegate.textFieldId,
                     child: widget.multiselect
-                        ? TextFormField(
+                        ? (widget.length == 0 || _isFocused
+                            ? TextFormField(
+                                key: textFormKey,
                             onTapOutside: _searchTapOutside,
-                            onTap: () {
-                              if (_isFocused) {
-                                _onSearchChanged("");
-                              }
-                            },
-                            validator: (value) {
-                              if (widget.validator == null) {
-                                return null;
-                              }
-                              setState(() {
-                                formError = widget.validator!(value);
-                              });
-                              return widget.validator!(value);
-                            },
-                            style: widget.textStyle,
-                            focusNode: _focusNode,
-                            enabled: widget.enabled,
-                            controller: _textFieldController,
-                            keyboardType: widget.keyboardType,
-                            keyboardAppearance: widget.keyboardAppearance,
-                            textCapitalization: widget.textCapitalization,
-                            textInputAction: widget.textInputAction,
-                            cursorColor: widget.cursorColor,
-                            autocorrect: widget.autocorrect,
-                            textAlign: widget.textAlign,
-                            textDirection: widget.textDirection,
-                            readOnly: widget.readOnly,
-                            autofocus: widget.autofocus,
-                            maxLines: widget.maxLines,
-                            decoration:
-                                decoration.copyWith(border: InputBorder.none),
-                            onChanged: _onTextFieldChange,
-                            onFieldSubmitted: _onSubmitted,
-                            inputFormatters: widget.inputFormatters,
-                          )
+                        ? (widget.length == 0 || _isFocused
+                            ? TextFormField(
+                                key: textFormKey,
+                                onTap: () {
+                                  if (_isFocused) {
+                                    _onSearchChanged("");
+                                  }
+                                },
+                                validator: (value) {
+                                  if (widget.validator == null) {
+                                    return null;
+                                  }
+                                  setState(() {
+                                    formError = widget.validator!(value);
+                                  });
+                                  return widget.validator!(value);
+                                },
+                                style: widget.textStyle,
+                                focusNode: _focusNode,
+                                enabled: widget.enabled,
+                                controller: _textFieldController,
+                                keyboardType: widget.keyboardType,
+                                keyboardAppearance: widget.keyboardAppearance,
+                                textCapitalization: widget.textCapitalization,
+                                textInputAction: widget.textInputAction,
+                                cursorColor: widget.cursorColor,
+                                autocorrect: widget.autocorrect,
+                                textAlign: widget.textAlign,
+                                textDirection: widget.textDirection,
+                                readOnly: widget.readOnly,
+                                autofocus: widget.autofocus,
+                                maxLines: widget.maxLines,
+                                decoration: decoration.copyWith(
+                                    border: InputBorder.none),
+                                onChanged: _onTextFieldChange,
+                                onFieldSubmitted: _onSubmitted,
+                                inputFormatters: widget.inputFormatters,
+                              )
+                            : SizedBox(
+                                height: widget.collapsedHeight ??
+                                    (isMobile ? 24 : inputHeight),
+                                child: SizedBox(
+                                  height: 0.1,
+                                  child: TextFormField(
+                                    style: const TextStyle(
+                                        fontSize: 0.1,
+                                        color: Colors.transparent),
+                                    readOnly: true,
+                                    enabled: false,
+                                    decoration: widget
+                                            .unfocusedInputDecoration ??
+                                        InputDecoration(
+                                          errorStyle: const TextStyle(
+                                              height: 0.01,
+                                              color: Colors.transparent),
+                                          errorBorder: OutlineInputBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(5),
+                                              borderSide: const BorderSide(
+                                                color: Colors.transparent,
+                                                width: 0.01,
+                                              )),
+                                          isDense: true,
+                                          isCollapsed: true,
+                                          contentPadding:
+                                              const EdgeInsets.all(0),
+                                          disabledBorder: OutlineInputBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(5),
+                                              borderSide: const BorderSide(
+                                                color: Colors.transparent,
+                                                width: 0.1,
+                                              )),
+                                          focusedBorder: OutlineInputBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(5),
+                                              borderSide: const BorderSide(
+                                                color: Colors.transparent,
+                                                width: 0,
+                                              )),
+                                          border: OutlineInputBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(5),
+                                              borderSide: const BorderSide(
+                                                color: Colors.transparent,
+                                                width: 0.1,
+                                              )),
+                                        ),
+                                    onTap: () {
+                                      if (_isFocused) {
+                                        _onSearchChanged("");
+                                      }
+                                    },
+                                    validator: (value) {
+                                      if (widget.validator == null) {
+                                        return null;
+                                      }
+                                      setState(() {
+                                        formError = widget.validator!(value);
+                                      });
+                                      return widget.validator!(value);
+                                    },
+                                  ),
+                                ),
+                              ))
                         : TextFormField(
-                            onTapOutside: _searchTapOutside,
                             onTap: () {
                               if (_isFocused) {
                                 _onSearchChanged("");
