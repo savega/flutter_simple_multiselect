@@ -356,11 +356,13 @@ class FlutterMultiselectState<T> extends State<FlutterMultiselect<T>> {
   void _scrollToVisible() {
     Future.delayed(const Duration(milliseconds: 300), () {
       WidgetsBinding.instance.addPostFrameCallback((_) async {
-        final renderBox = context.findRenderObject() as RenderBox;
-        final scroller = Scrollable.maybeOf(context);
+        if (mounted) {
+          final renderBox = context.findRenderObject() as RenderBox;
+          final scroller = Scrollable.maybeOf(context);
 
-        if (scroller != null) {
-          await scroller.position.ensureVisible(renderBox);
+          if (scroller != null) {
+            await scroller.position.ensureVisible(renderBox);
+          }
         }
       });
     });
