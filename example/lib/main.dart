@@ -179,6 +179,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Widget _staticData() {
     return FlutterMultiselect(
+        dropdownDirection: FlutterMultiselectDropdownDirection.above,
         autofocus: false,
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
         enableBorderColor: lineColor,

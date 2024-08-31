@@ -18,6 +18,12 @@ typedef SuggestionBuilder<T> = Widget Function(
 typedef InputSuggestions<T> = FutureOr<List<T>> Function(String query);
 typedef SearchSuggestions<T> = FutureOr<List<T>> Function();
 
+enum FlutterMultiselectDropdownDirection {
+  above,
+  below,
+  auto,
+}
+
 /// A [Widget] for editing tag similar to Google's Gmail
 /// email address input widget in the iOS app.
 class FlutterMultiselect<T> extends StatefulWidget {
@@ -71,8 +77,8 @@ class FlutterMultiselect<T> extends StatefulWidget {
     this.suggestionMargin,
     this.collapsedHeight,
     this.unfocusedInputDecoration,
-    this.leadingSelectionPadding,
   });
+
   /// Hint text
   final String hintText;
 
@@ -93,6 +99,9 @@ class FlutterMultiselect<T> extends StatefulWidget {
 
   /// Loader for async fetching
   final bool isLoading;
+
+  /// In which direction suggestions open
+  final FlutterMultiselectDropdownDirection dropdownDirection;
 
   /// Reset the TextField when `onSubmitted` is called
   /// this is default to `false` because when the form is submitted
@@ -153,7 +162,6 @@ class FlutterMultiselect<T> extends StatefulWidget {
   final Color? errorBorderColor;
 
   final double? collapsedHeight;
-  final double? leadingSelectionPadding;
 
   @override
   FlutterMultiselectState<T> createState() => FlutterMultiselectState<T>();
@@ -269,7 +277,7 @@ class FlutterMultiselectState<T> extends State<FlutterMultiselect<T>> {
             suggestionBoxHeight =
                 min(suggestionBoxHeight, widget.suggestionsBoxMaxHeight!);
           }
-          final showTop = topAvailableSpace > bottomAvailableSpace;
+          final showTop = _getShowOnTop(context);
           final compositedTransformFollowerOffset =
               showTop ? Offset(0, -size.height) : Offset.zero;
 
@@ -389,8 +397,14 @@ class FlutterMultiselectState<T> extends State<FlutterMultiselect<T>> {
   void _scrollToVisible() {
     Future.delayed(const Duration(milliseconds: 300), () {
       WidgetsBinding.instance.addPostFrameCallback((_) async {
-        final renderBox = context.findRenderObject() as RenderBox;
-        await Scrollable.of(context).position.ensureVisible(renderBox);
+        if (mounted) {
+          final renderBox = context.findRenderObject() as RenderBox;
+          final scroller = Scrollable.maybeOf(context);
+
+          if (scroller != null) {
+            await scroller.position.ensureVisible(renderBox);
+          }
+        }
       });
     });
   }
@@ -406,6 +420,11 @@ class FlutterMultiselectState<T> extends State<FlutterMultiselect<T>> {
     }
   }
 
+  void closeSuggestionsBox() {
+    _suggestions = null;
+    _suggestionsStreamController?.add([]);
+  }
+
   void _onSubmitted(String string) {
     widget.onSubmitted?.call(string);
     if (widget.resetTextOnSubmitted && widget.multiselect) {
@@ -416,6 +435,24 @@ class FlutterMultiselectState<T> extends State<FlutterMultiselect<T>> {
   void _resetTextField() {
     _textFieldController.text = '';
     _previousText = '';
+  }
+
+  bool _getShowOnTop(BuildContext context) {
+    if (widget.dropdownDirection == FlutterMultiselectDropdownDirection.auto) {
+      if (renderBox != null) {
+        final size = renderBox!.size;
+        final position = renderBox!.localToGlobal(Offset.zero);
+        final mq = MediaQuery.of(context);
+        final topAvailableSpace = position.dy;
+        final bottomAvailableSpace =
+            mq.size.height - mq.viewInsets.bottom - position.dy - size.height;
+
+        return topAvailableSpace > bottomAvailableSpace;
+      }
+    }
+
+    return widget.dropdownDirection ==
+        FlutterMultiselectDropdownDirection.above;
   }
 
   @override
