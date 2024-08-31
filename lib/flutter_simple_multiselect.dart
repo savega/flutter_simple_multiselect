@@ -42,6 +42,7 @@ class FlutterMultiselect<T> extends StatefulWidget {
     this.controller,
     this.textStyle,
     this.inputDecoration,
+    this.dropdownDirection = FlutterMultiselectDropdownDirection.auto,
     this.keyboardType,
     this.textInputAction,
     this.textCapitalization = TextCapitalization.none,
@@ -236,7 +237,9 @@ class FlutterMultiselectState<T> extends State<FlutterMultiselect<T>> {
     _suggestionsStreamController = StreamController<List<T>?>.broadcast();
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      _createOverlayEntry();
+      if (mounted) {
+        _createOverlayEntry();
+      }
     });
   }
 
